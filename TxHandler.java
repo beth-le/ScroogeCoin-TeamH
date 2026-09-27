@@ -1,11 +1,16 @@
+import java.util.ArrayList;
+import java.util.HashSet;
+
 public class TxHandler {
 
+    private UTXOPool utxoPool;
 	/* Creates a public ledger whose current UTXOPool (collection of unspent 
 	 * transaction outputs) is utxoPool. This should make a defensive copy of 
 	 * utxoPool by using the UTXOPool(UTXOPool uPool) constructor.
 	 */
 	public TxHandler(UTXOPool utxoPool) {
 		// IMPLEMENT THIS
+        this.utxoPool = new UTXOPool(utxoPool);
 	}
 
 	/* Returns true if 
@@ -20,8 +25,38 @@ public class TxHandler {
 
 	public boolean isValidTx(Transaction tx) {
 		// IMPLEMENT THIS
+        if (tx == null) {
 		return false;
 	}
+
+    HashSet<UTXO> claimed = new HashSet<UTXO>();
+    double inputSum = 0;
+    double outputSum = 0;
+
+    for (int i = 0; i < tx.numInputs(); i++) {
+        Transaction.Input input = tx.getInput(i);
+
+        // Preliminary check for tx hash and signature 
+        if (input.prevTxHash == null || input.signature == null) {
+            return false;
+        }
+
+        UTXO spent = new UTXO(input.prevTxHash, input.outputIndex);
+        // Check for Rule 1 and Rule 3 
+        if (!utxoPool.contains(spent) || !claimed.add(spent)) {
+            return false;
+        }
+
+        // Retrieve old tx output that current input claims to spend
+        Transaction.Output previous = utxoPool.getTxOutput(spent);
+
+    
+        // Check for Rule 2 
+        if (previous == null || previous.address == null ||
+                !previous.address.verifySignature(
+                    tx.getRawDataToSign(i), input.signature)){
+            return false;
+        }
 
 	/* Handles each epoch by receiving an unordered array of proposed 
 	 * transactions, checking each transaction for correctness, 
@@ -32,5 +67,5 @@ public class TxHandler {
 		// IMPLEMENT THIS
 		return null;
 	}
+ 
 
-} 
