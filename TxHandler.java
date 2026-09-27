@@ -54,9 +54,29 @@ public class TxHandler {
         // Check for Rule 2 
         if (previous == null || previous.address == null ||
                 !previous.address.verifySignature(
-                    tx.getRawDataToSign(i), input.signature)){
+                    tx.getRawDataToSign(i), input.signature)) {
             return false;
         }
+        
+        // Check for Rule 5 
+        inputSum += previous.value;
+    }
+    
+    return false;
+}
+    // Check every new output tx wants to create
+    for (Transaction.Output output : tx.getOutputs()) {
+        // Check for Rule 4
+        if (output == null || !(output.value >0)) {
+            return false;
+        }
+
+        // Rule 5 
+        outputSum += output.value;
+    }
+        // Output can't surpass input, no spending nonexistent funds
+        return inputSum >= outputSum;
+    }
 
 	/* Handles each epoch by receiving an unordered array of proposed 
 	 * transactions, checking each transaction for correctness, 
